@@ -28,7 +28,41 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
+  app.get( "/filteredimage", async ( req, res ) => {
 
+    // retrieve and validate the url_image from the query
+    let { image_url } = req.query;
+    if ( !image_url ) {
+      return res.status(400).send(`image_url is required`);
+    }
+
+    // UNCOMMENT this if you want to see the original image (resized)
+    //return res.status(200).send(`Image ${image_url}! <img width="200" height="200" src="${image_url}"/>`);
+
+    // filter the image
+    const pathToLocalImagePromise: Promise<string> = filterImageFromURL(image_url);
+
+    // send the filtered image in the response
+    pathToLocalImagePromise.then((result) => {
+      res.status(200).sendFile(result);
+
+      // delete the file after treatment and after being sent
+      res.on("finish", ()=>{
+        let arrayFiles : Array<string> = new Array<string>();
+        arrayFiles.push(result);
+        deleteLocalFiles(arrayFiles);
+      });
+
+      return res;
+    });
+
+    // handle the error case 
+    //there is not reject function call in filterImageFromURL, so this is never called
+    pathToLocalImagePromise.catch((error) => {
+      return res.status(422).send("Error handling your file "+ image_url +" ERROR: " + error);
+    });
+    
+  });
   //! END @TODO1
   
   // Root Endpoint
